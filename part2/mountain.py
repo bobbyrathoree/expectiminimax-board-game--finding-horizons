@@ -7,7 +7,7 @@
 #
 
 from PIL import Image
-from numpy import *
+import numpy as np
 from scipy.ndimage import filters
 import sys
 import imageio
@@ -15,10 +15,10 @@ import imageio
 
 # calculate "Edge strength map" of an image
 def edge_strength(input_image):
-    grayscale = array(input_image.convert("L"))
-    filtered_y = zeros(grayscale.shape)
+    grayscale = np.array(input_image.convert("L"))
+    filtered_y = np.zeros(grayscale.shape)
     filters.sobel(grayscale, 0, filtered_y)
-    return sqrt(filtered_y ** 2)
+    return np.sqrt(filtered_y ** 2)
 
 
 # draw a "line" on an image (actually just plot the given y-coordinates
@@ -39,20 +39,27 @@ def draw_edge(image, y_coordinates, color, thickness):
     return image
 
 
+def viterbi(transition, emission, initial):
+    pass
+
+
 # main program
-#
-(input_filename, gt_row, gt_col) = sys.argv[1:]
+if __name__ == "__main__":
+    (input_filename, gt_row, gt_col) = sys.argv[1:]
 
-# load in image
-input_image = Image.open(input_filename)
+    # load in image
+    input_image = Image.open(input_filename)
 
-# compute edge strength mask
-edge_strength = edge_strength(input_image)
-imageio.imwrite("edges.jpg", uint8(255 * edge_strength / (amax(edge_strength))))
+    # compute edge strength mask
+    edge_strength = edge_strength(input_image)
+    imageio.imwrite("edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength))))
 
-# You'll need to add code here to figure out the results! For now,
-# just create a horizontal centered line.
-ridge = [edge_strength.shape[0] / 2] * edge_strength.shape[1]
-
-# output answer
-imageio.imwrite("output.jpg", draw_edge(input_image, ridge, (255, 0, 0), 5))
+    # You'll need to add code here to figure out the results! For now,
+    # just create a horizontal centered line.
+    arg = edge_strength.argmax(axis=0)
+    print(arg)
+    # ridge = [edge_strength.shape[0] / 2] * edge_strength.shape[1]
+    print(edge_strength)
+    # print("Ridge: {0}\nEdge Strength: {1}".format(1, edge_strength))
+    # output answer
+    imageio.imwrite("output.jpg", draw_edge(input_image, arg, (255, 0, 0), 5))
