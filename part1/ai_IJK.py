@@ -12,6 +12,7 @@ from logic_IJK import Game_IJK
 import random
 import math
 import copy
+import statistics
 
 # Suggests next move to be played by the current player given the current game
 #
@@ -152,8 +153,40 @@ def expectedBoards(board, player):
                 newBoard[i][j] = letter
                 list_boards.append(newBoard)
     return list_boards
+
+def expctiMiniMax(childBoard, depth, player, e, realPlayer):
+    if depth == 0:
+        return evalHeuristic(childBoard.getGame())
+    if e:#On a chance node not player
+        avgUtility = []
+        for move in ["L", "R", "U", "D"]:
+                copyboard = copy.deepcopy(childBoard)
+                newChild = copyboard.makeMove(move)
+                newboard = newChild.getGame()
+                avgUtility.append(expctiMiniMax(newChild, depth-1, player, False, realPlayer))
+        return statistics.mean(avgUtility)
+
+    if player:
+        maxUtility = -math.inf
+        #allNewBoards = expectedBoards(childBoard, realPlayer)
+        #for newBoard in allNewBoards:
+        for move in ["L", "R", "U", "D"]:
+            copyboard = copy.deepcopy(childBoard)
+            newChild = copyboard.makeMove(move)
+            newboard = newChild.getGame()
+            maxUtility = max(maxUtility, expctiMiniMax(newChild, depth-1, False, True, realPlayer))
+        return maxUtility
+    else:
+        minUtility = math.inf
+        #allNewBoards = expectedBoards(childBoard, realPlayer)
+        #for newBoard in allNewBoards:
+        for move in ["L", "R", "U", "D"]:
+            copyboard = copy.deepcopy(childBoard)
+            newChild = copyboard.makeMove(move)
+            newboard = newChild.getGame()
+            minUtility = min(minUtility, expctiMiniMax(newChild, depth-1, True, True, realPlayer))
+        return minUtility
 '''
-def expctiMiniMax(child, depth, player):
     if player == '+':
         otherPlayer = '-'
     elif player == '-':
@@ -172,9 +205,8 @@ def expctiMiniMax(child, depth, player):
 
 
     # maximize the new
-
-    return 
 '''
+
 def findOptimalMoveNonDet(newGame, board, depth, player):
     moves = ["L", "R", "U", "D"]
     maxUtility = []
@@ -184,7 +216,7 @@ def findOptimalMoveNonDet(newGame, board, depth, player):
         reallynewGame = copy.deepcopy(newGame)
         child = reallynewGame.makeMove(move)
         childBoard = child.getGame()
-        utility = expctiMiniMax(child, depth, player)
+        utility = expctiMiniMax(child, depth, False, True, player)
         maxUtility.append(utility)
         # not sure if this part works
         if utility >= max(maxUtility):
@@ -207,6 +239,8 @@ def next_move(game: Game_IJK) -> None:
     #move, score = minimax(game, board, 1000, player)
     if deterministic == True:
         move = findOptimalMoveDet(newGame, board, 4, player)
+    else:
+        move = findOptimalMoveNonDet(newGame, board, 4, player)
     #elif deterministic == False:
     yield move
 
