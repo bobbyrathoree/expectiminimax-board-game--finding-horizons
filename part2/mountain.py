@@ -9,24 +9,25 @@ from PIL import Image
 import numpy as np
 from scipy.ndimage import filters
 import sys
+import os
 import imageio
 
 
 class HMM:
-    def __init__(self, transition_probs, emission_probs):
-        self._transition_probs = transition_probs
-        self._emission_probs = emission_probs
+    def __init__(self, transitional_probabilities, emission_probabilities):
+        self.transitional_probabilities = transitional_probabilities
+        self.emission_probabilities = emission_probabilities
 
-    def emission_dist(self, emission):
-        return self._emission_probs[:, emission]
-
-    @property
-    def num_states(self):
-        return self._transition_probs.shape[0]
+    def get_emission_dist(self, emission):
+        return self.emission_probabilities[:, emission]
 
     @property
-    def transition_probs(self):
-        return self._transition_probs
+    def get_number_of_states(self):
+        return self.transitional_probabilities.shape[0]
+
+    @property
+    def get_transition_probabilities(self):
+        return self.transitional_probabilities
 
 
 # calculate "Edge strength map" of an image
@@ -55,33 +56,112 @@ def draw_edge(image, y_coordinates, color, thickness):
     return image
 
 
-def viterbi(hmm: HMM, initial_dist, emissions):
-    probs = hmm.emission_dist(emissions[0]) * initial_dist
-    stack = []
+def bayes_net(edge_strength_matrix: np.array, filename: str) -> None:
+    imageio.imwrite(
+        "bayes_net/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
+        draw_edge(input_image, edge_strength_matrix.argmax(axis=0), (255, 0, 0), 5),
+    )
+    return None
 
-    for emission in emissions[1:]:
-        trans_probs = hmm.transition_probs * np.row_stack(probs)
-        max_col_ixs = np.argmax(trans_probs, axis=0)
-        probs = (
-            hmm.emission_dist(emission)
-            * trans_probs[max_col_ixs, np.arange(hmm.num_states)]
+
+def viterbi(edge_strength_matrix: np.array, filename: str) -> None:
+    normally_distributed_initial_probabilities = np.full(
+        edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
+    )
+    max_of_each_row = np.amax(edge_strength_matrix, axis=0)
+    emission_probabilities = np.array(
+        [
+            each_row / max_of_each_row[index]
+            for index, each_row in enumerate(edge_strength_matrix)
+        ]
+    )
+
+    all_rows = range(edge_strength.shape[0])
+    column_value_for_each_row = [row for row in all_rows]
+
+    transitional_probabilities = np.array(
+        [
+            np.array(
+                [
+                    abs(
+                        (
+                            column
+                            - np.max(
+                                [
+                                    abs(row - absolute_column_value)
+                                    for absolute_column_value in column_value_for_each_row
+                                ]
+                            )
+                        )
+                        / np.max(
+                            [
+                                abs(row - absolute_column_value)
+                                for absolute_column_value in column_value_for_each_row
+                            ]
+                        )
+                    )
+                    for column in [
+                        abs(row - absolute_column_value)
+                        for absolute_column_value in column_value_for_each_row
+                    ]
+                ]
+            )
+            for row in all_rows
+        ]
+    )
+
+    first_product, second_product = (
+        np.empty((transitional_probabilities.shape[0], edge_strength_matrix.shape[1])),
+        np.empty((transitional_probabilities.shape[0], edge_strength_matrix.shape[1])),
+    )
+
+    first_product[:, 0] = (
+        normally_distributed_initial_probabilities * emission_probabilities[:, 0]
+    )
+    second_product[:, 0] = 0
+
+    for column in range(1, edge_strength_matrix.shape[1]):
+        first_product[:, column] = np.max(
+            first_product[:, column - 1]
+            * transitional_probabilities.T
+            * emission_probabilities[:, column].T,
+            1,
+        )
+        second_product[:, column] = np.argmax(
+            first_product[:, column - 1] * transitional_probabilities.T, 1
         )
 
-        stack.append(max_col_ixs)
+    resultant_matrix = np.empty(edge_strength_matrix.shape[1])
+    resultant_matrix[-1] = np.argmax(first_product[:, edge_strength_matrix.shape[1] - 1])
 
-    state_seq = [np.argmax(probs)]
+    for column in reversed(range(1, edge_strength_matrix.shape[1])):
+        resultant_matrix[column - 1] = second_product[
+            int(resultant_matrix[column]), column]
 
-    while stack:
-        max_col_ixs = stack.pop()
-        state_seq.append(max_col_ixs[state_seq[-1]])
+    imageio.imwrite(
+        "viterbi/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
+        draw_edge(input_image, resultant_matrix, (100, 10, 130), 5),
+    )
 
-    state_seq.reverse()
+    # print(
+    #     normally_distributed_initial_probabilities,
+    #     observable_states,
+    #     emission_probabilities,
+    #     transitional_probabilities,
+    # )
+    return None
 
-    return state_seq
+
+def human_viterbi(edge_strength_matrix: np.array, filename: str) -> None:
+    pass
 
 
-# main program
 if __name__ == "__main__":
+
+    if not os.path.exists("viterbi") and not os.path.exists("bayes_net"):
+        os.makedirs("viterbi")
+        os.makedirs("bayes_net")
+
     (input_filename, gt_row, gt_col) = sys.argv[1:]
 
     # load in image
@@ -93,15 +173,17 @@ if __name__ == "__main__":
         "edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength)))
     )
 
+    bayes_net(edge_strength_matrix=edge_strength, filename=input_filename)
+
+    viterbi(edge_strength_matrix=edge_strength, filename=input_filename)
+
+    # TODO Human Viterbi
+    human_viterbi(edge_strength_matrix=edge_strength, filename=input_filename)
+
     # You'll need to add code here to figure out the results! For now,
     # just create a horizontal centered line.
-
-    # TODO viterbi emissions
-
-    arg = edge_strength.argmax(axis=0)
-    # print(arg)
     # ridge = [edge_strength.shape[0] / 2] * edge_strength.shape[1]
-    print(edge_strength)
+    # print(edge_strength)
     # print("Ridge: {0}\nEdge Strength: {1}".format(1, edge_strength))
     # output answer
-    imageio.imwrite("output.jpg", draw_edge(input_image, arg, (255, 0, 0), 5))
+    # imageio.imwrite("output.jpg", draw_edge(input_image, arg, (255, 0, 0), 5))

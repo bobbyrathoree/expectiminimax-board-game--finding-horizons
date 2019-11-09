@@ -19,6 +19,8 @@ lib64/
 parts/
 sdist/
 var/
+part2/viterbi/*
+part2/bayes_net/*
 .idea/
 wheels/
 *.egg-info/
