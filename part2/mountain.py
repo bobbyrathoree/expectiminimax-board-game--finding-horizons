@@ -186,8 +186,21 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
     return None
 
 
-def human_viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
-    pass
+def human_viterbi(edge_strength_matrix: np.array, filename: str, image, coordinates: list = None) -> None:
+    normally_distributed_initial_probabilities = np.full(
+        edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
+    )
+    max_of_each_row = np.amax(edge_strength_matrix, axis=0)
+
+    # TODO take 10 pixels below and above for emission
+    emission_probabilities = np.array(
+        [
+            each_row / max_of_each_row[index]
+            for index, each_row in enumerate(edge_strength_matrix)
+        ]
+    )
+
+    return None
 
 
 if __name__ == "__main__":
