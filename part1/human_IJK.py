@@ -25,7 +25,6 @@ def next_move(game: Game_IJK) -> None:
        current_player: int -> player who will make the next move either 1('+') or -1('-')
     """
 
-    # print("Please enter move for player %s (U, D, L, R): " % game.getCurrentPlayer())
     move = (
         input(
             "Please enter move for player %s (U, D, L, R): " % game.getCurrentPlayer()
