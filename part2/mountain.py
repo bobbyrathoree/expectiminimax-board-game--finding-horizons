@@ -1,10 +1,9 @@
 #!/usr/local/bin/python3
 #
-# Authors: [PLEASE PUT YOUR NAMES AND USER IDS HERE]
+# Authors: Bobby Rathore (brathore), Neha Supe (nehasupe), Kelly Wheeler (kellwhee)
 #
 # Mountain ridge finder
 # Based on skeleton code by D. Crandall, Oct 2019
-#
 
 from PIL import Image
 import numpy as np
@@ -13,8 +12,25 @@ import sys
 import imageio
 
 
+class HMM:
+    def __init__(self, transition_probs, emission_probs):
+        self._transition_probs = transition_probs
+        self._emission_probs = emission_probs
+
+    def emission_dist(self, emission):
+        return self._emission_probs[:, emission]
+
+    @property
+    def num_states(self):
+        return self._transition_probs.shape[0]
+
+    @property
+    def transition_probs(self):
+        return self._transition_probs
+
+
 # calculate "Edge strength map" of an image
-def edge_strength(input_image):
+def get_edge_strength(input_image):
     grayscale = np.array(input_image.convert("L"))
     filtered_y = np.zeros(grayscale.shape)
     filters.sobel(grayscale, 0, filtered_y)
@@ -39,8 +55,29 @@ def draw_edge(image, y_coordinates, color, thickness):
     return image
 
 
-def viterbi(transition, emission, initial):
-    pass
+def viterbi(hmm: HMM, initial_dist, emissions):
+    probs = hmm.emission_dist(emissions[0]) * initial_dist
+    stack = []
+
+    for emission in emissions[1:]:
+        trans_probs = hmm.transition_probs * np.row_stack(probs)
+        max_col_ixs = np.argmax(trans_probs, axis=0)
+        probs = (
+            hmm.emission_dist(emission)
+            * trans_probs[max_col_ixs, np.arange(hmm.num_states)]
+        )
+
+        stack.append(max_col_ixs)
+
+    state_seq = [np.argmax(probs)]
+
+    while stack:
+        max_col_ixs = stack.pop()
+        state_seq.append(max_col_ixs[state_seq[-1]])
+
+    state_seq.reverse()
+
+    return state_seq
 
 
 # main program
@@ -51,13 +88,18 @@ if __name__ == "__main__":
     input_image = Image.open(input_filename)
 
     # compute edge strength mask
-    edge_strength = edge_strength(input_image)
-    imageio.imwrite("edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength))))
+    edge_strength = get_edge_strength(input_image)
+    imageio.imwrite(
+        "edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength)))
+    )
 
     # You'll need to add code here to figure out the results! For now,
     # just create a horizontal centered line.
+
+    # TODO viterbi emissions
+
     arg = edge_strength.argmax(axis=0)
-    print(arg)
+    # print(arg)
     # ridge = [edge_strength.shape[0] / 2] * edge_strength.shape[1]
     print(edge_strength)
     # print("Ridge: {0}\nEdge Strength: {1}".format(1, edge_strength))
