@@ -35,11 +35,11 @@ class HMM:
         return self.transitional_probabilities
 
 
-def get_edge_strength(input_image) -> float:
+def get_edge_strength(input_image) -> np.array:
     """
     calculate "Edge strength map" of an image
-    :param input_image:
-    :return:
+    :param input_image: the original image for which we want the edge strengths
+    :return: a 2D numpy vector containing the edge strength matrix
     """
     grayscale = np.array(input_image.convert("L"))
     filtered_y = np.zeros(grayscale.shape)
@@ -54,11 +54,11 @@ def draw_edge(image, y_coordinates, color, thickness):
     y-coordinates and length equal to the x dimension size of the image
     color is a (red, green, blue) color triple (e.g. (255, 0, 0) would be pure red
     thickness is thickness of line in pixels
-    :param image:
-    :param y_coordinates:
-    :param color:
-    :param thickness:
-    :return:
+    :param image: the original image object to put pixels on
+    :param y_coordinates: the coordinates where we shall put pixels
+    :param color: color of the pixels
+    :param thickness: density/thickness of the pixels
+    :return: image object with superimposed pixels
     """
     for (x, y) in enumerate(y_coordinates):
         for t in range(
@@ -72,14 +72,19 @@ def draw_edge(image, y_coordinates, color, thickness):
 def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
     """
     Naive Bayes Net implementation for the given image matrix
-    :param edge_strength_matrix:
-    :param filename:
-    :param image:
-    :return:
+    :param edge_strength_matrix: a 2D numpy vector containing the edge strength matrix
+    :param filename: name of the file we're working with
+    :param image: the original image object to put pixels on
+    :return: None
     """
     imageio.imwrite(
         "bayes_net/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
-        draw_edge(image, edge_strength_matrix.argmax(axis=0), (255, 0, 0), 5),
+        draw_edge(
+            image=image,
+            y_coordinates=edge_strength_matrix.argmax(axis=0),
+            color=(255, 123, 0),
+            thickness=5,
+        ),
     )
     return None
 
@@ -87,10 +92,10 @@ def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
 def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
     """
     Viterbi implementation for the given image matrix
-    :param edge_strength_matrix:
-    :param filename:
-    :param image:
-    :return:
+    :param edge_strength_matrix: a 2D numpy vector containing the edge strength matrix
+    :param filename: name of file we're working with
+    :param image: the original image object to put pixels on
+    :return: None
     """
     normally_distributed_initial_probabilities = np.full(
         edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
@@ -170,7 +175,12 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
 
     imageio.imwrite(
         "viterbi/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
-        draw_edge(image, resultant_matrix, (100, 10, 130), 5),
+        draw_edge(
+            image=image,
+            y_coordinates=resultant_matrix,
+            color=(100, 10, 130),
+            thickness=5,
+        ),
     )
 
     return None
@@ -199,14 +209,20 @@ if __name__ == "__main__":
     )
 
     bayes_net(
-        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_bayes_net
+        edge_strength_matrix=edge_strength,
+        filename=input_filename,
+        image=input_image_bayes_net,
     )
 
     viterbi(
-        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_viterbi
+        edge_strength_matrix=edge_strength,
+        filename=input_filename,
+        image=input_image_viterbi,
     )
 
     # TODO Human Viterbi
     human_viterbi(
-        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_viterbi
+        edge_strength_matrix=edge_strength,
+        filename=input_filename,
+        image=input_image_viterbi,
     )
