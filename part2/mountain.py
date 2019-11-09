@@ -15,6 +15,11 @@ import imageio
 
 class HMM:
     def __init__(self, transitional_probabilities, emission_probabilities):
+        """
+        Constructor for the HMM model class
+        :param transitional_probabilities:
+        :param emission_probabilities:
+        """
         self.transitional_probabilities = transitional_probabilities
         self.emission_probabilities = emission_probabilities
 
@@ -30,23 +35,31 @@ class HMM:
         return self.transitional_probabilities
 
 
-# calculate "Edge strength map" of an image
-def get_edge_strength(input_image):
+def get_edge_strength(input_image) -> float:
+    """
+    calculate "Edge strength map" of an image
+    :param input_image:
+    :return:
+    """
     grayscale = np.array(input_image.convert("L"))
     filtered_y = np.zeros(grayscale.shape)
     filters.sobel(grayscale, 0, filtered_y)
     return np.sqrt(filtered_y ** 2)
 
 
-# draw a "line" on an image (actually just plot the given y-coordinates
-#  for each x-coordinate)
-# - image is the image to draw on
-# - y_coordinates is a list, containing the y-coordinates and length equal to the x dimension size
-#   of the image
-# - color is a (red, green, blue) color triple (e.g. (255, 0, 0) would be pure red
-# - thickness is thickness of line in pixels
-#
 def draw_edge(image, y_coordinates, color, thickness):
+    """
+    draw a "line" on an image (actually just plot the given y-coordinates for each x-coordinate)
+    image is the image to draw on y_coordinates is a list, containing the
+    y-coordinates and length equal to the x dimension size of the image
+    color is a (red, green, blue) color triple (e.g. (255, 0, 0) would be pure red
+    thickness is thickness of line in pixels
+    :param image:
+    :param y_coordinates:
+    :param color:
+    :param thickness:
+    :return:
+    """
     for (x, y) in enumerate(y_coordinates):
         for t in range(
             int(max(y - int(thickness / 2), 0)),
@@ -56,15 +69,29 @@ def draw_edge(image, y_coordinates, color, thickness):
     return image
 
 
-def bayes_net(edge_strength_matrix: np.array, filename: str) -> None:
+def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
+    """
+    Naive Bayes Net implementation for the given image matrix
+    :param edge_strength_matrix:
+    :param filename:
+    :param image:
+    :return:
+    """
     imageio.imwrite(
         "bayes_net/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
-        draw_edge(input_image, edge_strength_matrix.argmax(axis=0), (255, 0, 0), 5),
+        draw_edge(image, edge_strength_matrix.argmax(axis=0), (255, 0, 0), 5),
     )
     return None
 
 
-def viterbi(edge_strength_matrix: np.array, filename: str) -> None:
+def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
+    """
+    Viterbi implementation for the given image matrix
+    :param edge_strength_matrix:
+    :param filename:
+    :param image:
+    :return:
+    """
     normally_distributed_initial_probabilities = np.full(
         edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
     )
@@ -132,27 +159,24 @@ def viterbi(edge_strength_matrix: np.array, filename: str) -> None:
         )
 
     resultant_matrix = np.empty(edge_strength_matrix.shape[1])
-    resultant_matrix[-1] = np.argmax(first_product[:, edge_strength_matrix.shape[1] - 1])
+    resultant_matrix[-1] = np.argmax(
+        first_product[:, edge_strength_matrix.shape[1] - 1]
+    )
 
     for column in reversed(range(1, edge_strength_matrix.shape[1])):
         resultant_matrix[column - 1] = second_product[
-            int(resultant_matrix[column]), column]
+            int(resultant_matrix[column]), column
+        ]
 
     imageio.imwrite(
         "viterbi/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
-        draw_edge(input_image, resultant_matrix, (100, 10, 130), 5),
+        draw_edge(image, resultant_matrix, (100, 10, 130), 5),
     )
 
-    # print(
-    #     normally_distributed_initial_probabilities,
-    #     observable_states,
-    #     emission_probabilities,
-    #     transitional_probabilities,
-    # )
     return None
 
 
-def human_viterbi(edge_strength_matrix: np.array, filename: str) -> None:
+def human_viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
     pass
 
 
@@ -165,25 +189,24 @@ if __name__ == "__main__":
     (input_filename, gt_row, gt_col) = sys.argv[1:]
 
     # load in image
-    input_image = Image.open(input_filename)
+    input_image_bayes_net = Image.open(input_filename)
+    input_image_viterbi = Image.open(input_filename)
 
     # compute edge strength mask
-    edge_strength = get_edge_strength(input_image)
+    edge_strength = get_edge_strength(input_image_bayes_net)
     imageio.imwrite(
         "edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength)))
     )
 
-    bayes_net(edge_strength_matrix=edge_strength, filename=input_filename)
+    bayes_net(
+        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_bayes_net
+    )
 
-    viterbi(edge_strength_matrix=edge_strength, filename=input_filename)
+    viterbi(
+        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_viterbi
+    )
 
     # TODO Human Viterbi
-    human_viterbi(edge_strength_matrix=edge_strength, filename=input_filename)
-
-    # You'll need to add code here to figure out the results! For now,
-    # just create a horizontal centered line.
-    # ridge = [edge_strength.shape[0] / 2] * edge_strength.shape[1]
-    # print(edge_strength)
-    # print("Ridge: {0}\nEdge Strength: {1}".format(1, edge_strength))
-    # output answer
-    # imageio.imwrite("output.jpg", draw_edge(input_image, arg, (255, 0, 0), 5))
+    human_viterbi(
+        edge_strength_matrix=edge_strength, filename=input_filename, image=input_image_viterbi
+    )
