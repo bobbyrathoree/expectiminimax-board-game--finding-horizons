@@ -81,7 +81,7 @@ def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
     imageio.imwrite(
         "bayes_net/{0}_output_simple.jpg".format(filename.split(".")[0].split("/")[-1]),
         draw_edge(
-            image=image,
+            image=image.copy(),
             y_coordinates=edge_strength_matrix.argmax(axis=0),
             color=(255, 123, 0),
             thickness=5,
@@ -109,10 +109,13 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
     :param image: the original image object to put pixels on
     :return: None
     """
+    # Initial probabilities are normally distributed
     normally_distributed_initial_probabilities = np.full(
         edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
     )
     max_of_each_row = np.amax(edge_strength_matrix, axis=0)
+
+    # Setup Emission Probabilities
     emission_probabilities = np.array(
         [
             each_row / max_of_each_row[index]
@@ -120,9 +123,11 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
         ]
     )
 
+    # Setup transitional Probabilities
     all_rows = range(edge_strength_matrix.shape[0])
     column_value_for_each_row = [row for row in all_rows]
 
+    # Take absolute value of each row normalized with it's corresponding column value
     transitional_probabilities = np.array(
         [
             np.array(
@@ -154,16 +159,19 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
         ]
     )
 
+    # Viterbi algorithm begins here
     first_product, second_product = (
         np.empty((transitional_probabilities.shape[0], edge_strength_matrix.shape[1])),
         np.empty((transitional_probabilities.shape[0], edge_strength_matrix.shape[1])),
     )
 
+    # Setup the first column by multiplying the initial and emission probabilities
     first_product[:, 0] = (
         normally_distributed_initial_probabilities * emission_probabilities[:, 0]
     )
     second_product[:, 0] = 0
 
+    # Update each column along the way with the maximum value
     for column in range(1, edge_strength_matrix.shape[1]):
         first_product[:, column] = np.max(
             first_product[:, column - 1]
@@ -175,11 +183,13 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
             first_product[:, column - 1] * transitional_probabilities.T, 1
         )
 
+    # Get the y_coordinates ready
     resultant_matrix = np.empty(edge_strength_matrix.shape[1])
     resultant_matrix[-1] = np.argmax(
         first_product[:, edge_strength_matrix.shape[1] - 1]
     )
 
+    # "Backtracking"
     for column in reversed(range(1, edge_strength_matrix.shape[1])):
         resultant_matrix[column - 1] = second_product[
             int(resultant_matrix[column]), column
@@ -189,7 +199,10 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
     imageio.imwrite(
         "viterbi/{0}_output_map.jpg".format(filename.split(".")[0].split("/")[-1]),
         draw_edge(
-            image=image, y_coordinates=resultant_matrix, color=(255, 0, 0), thickness=5
+            image=image.copy(),
+            y_coordinates=resultant_matrix,
+            color=(255, 0, 0),
+            thickness=5,
         ),
     )
 
@@ -212,7 +225,18 @@ def viterbi_with_logs(
     column: int = 0,
     human: bool = False,
 ) -> None:
-
+    """
+    Similar viterbi implementation as above but without initial probabilities,
+    with human feedback incorporation and logs to avoid underflow errors
+    :param edge_strength_matrix: a 2D numpy vector containing the edge strength matrix
+    :param filename: the name of the file we're working with
+    :param image: the original image object to put pixels on
+    :param row: row pixel value where human thinks the ridge is
+    :param column: column pixel value where human thinks the ridge is
+    :param human: a flag to determine whether human feedback is to be considered or not
+    :return: None
+    """
+    # Setup Transitional Probabilities
     transition_probabilities = np.repeat(
         np.linspace(
             0, edge_strength_matrix.shape[0] - 1, edge_strength_matrix.shape[0]
@@ -225,27 +249,40 @@ def viterbi_with_logs(
     ).reshape(
         edge_strength_matrix.shape[0], 1
     )
+
+    # Take the max of each column for each row and reshape
     transition_probabilities = np.amax(
         np.absolute(transition_probabilities), axis=0
     ).reshape(1, edge_strength_matrix.shape[0]) - np.absolute(transition_probabilities)
+
+    # Divide by sum to normalize
     transition_probabilities = transition_probabilities / np.sum(
         transition_probabilities, axis=0
     ).reshape(1, edge_strength_matrix.shape[0])
 
-    transition_probabilities += 0.0001
+    # Add a small value to avoid log infinity errors
+    transition_probabilities += 0.00001
 
+    # Setup Emission probabilities
     emission_probabilities = edge_strength_matrix / np.amax(
         edge_strength_matrix, axis=0
     )
-    emission_probabilities += 0.0001
 
+    # Add a small value to avoid log infinity errors
+    emission_probabilities += 0.00001
+
+    # If we're considering human feedback in our algorithm,
+    # Make the column values essentially equal to zero
+    # And make that particular pixel equal to 1
     if human:
         emission_probabilities[:, column] = 0.00000001
         emission_probabilities[row, column] = 1
 
+    # All observable intermediate states
     intermediate_states = np.array([0 for _ in range(edge_strength_matrix.shape[0])])
     all_possible_paths = [str(path) for path in range(edge_strength_matrix.shape[0])]
 
+    # Make a backup to act as a backtracking device
     intermediate_states_backup = intermediate_states.copy()
 
     for column in range(1, edge_strength_matrix.shape[1]):

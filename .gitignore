@@ -21,6 +21,7 @@ sdist/
 var/
 part2/viterbi/*
 part2/bayes_net/*
+part2/human_viterbi/*
 .idea/
 wheels/
 *.egg-info/
