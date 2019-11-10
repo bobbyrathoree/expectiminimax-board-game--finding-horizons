@@ -77,8 +77,20 @@ def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
     :param image: the original image object to put pixels on
     :return: None
     """
+    # Save for our records
     imageio.imwrite(
-        "bayes_net/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
+        "bayes_net/{0}_output_simple.jpg".format(filename.split(".")[0].split("/")[-1]),
+        draw_edge(
+            image=image,
+            y_coordinates=edge_strength_matrix.argmax(axis=0),
+            color=(255, 123, 0),
+            thickness=5,
+        ),
+    )
+
+    # Save for grading system
+    imageio.imwrite(
+        "output_simple.jpg",
         draw_edge(
             image=image,
             y_coordinates=edge_strength_matrix.argmax(axis=0),
@@ -108,7 +120,7 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
         ]
     )
 
-    all_rows = range(edge_strength.shape[0])
+    all_rows = range(edge_strength_matrix.shape[0])
     column_value_for_each_row = [row for row in all_rows]
 
     transitional_probabilities = np.array(
@@ -173,31 +185,104 @@ def viterbi(edge_strength_matrix: np.array, filename: str, image) -> None:
             int(resultant_matrix[column]), column
         ]
 
+    # Save for our records
     imageio.imwrite(
-        "viterbi/{0}_output.jpg".format(filename.split(".")[0].split("/")[-1]),
+        "viterbi/{0}_output_map.jpg".format(filename.split(".")[0].split("/")[-1]),
         draw_edge(
-            image=image,
-            y_coordinates=resultant_matrix,
-            color=(100, 10, 130),
-            thickness=5,
+            image=image, y_coordinates=resultant_matrix, color=(255, 0, 0), thickness=5
+        ),
+    )
+
+    # Save for grading system
+    imageio.imwrite(
+        "output_map.jpg",
+        draw_edge(
+            image=image, y_coordinates=resultant_matrix, color=(255, 0, 0), thickness=5
         ),
     )
 
     return None
 
 
-def human_viterbi(edge_strength_matrix: np.array, filename: str, image, coordinates: list = None) -> None:
-    normally_distributed_initial_probabilities = np.full(
-        edge_strength_matrix.shape[0], 1 / edge_strength_matrix.shape[0]
-    )
-    max_of_each_row = np.amax(edge_strength_matrix, axis=0)
+def viterbi_with_logs(
+    edge_strength_matrix: np.array,
+    filename: str,
+    image,
+    row: int = 0,
+    column: int = 0,
+    human: bool = False,
+) -> None:
 
-    # TODO take 10 pixels below and above for emission
-    emission_probabilities = np.array(
-        [
-            each_row / max_of_each_row[index]
-            for index, each_row in enumerate(edge_strength_matrix)
-        ]
+    transition_probabilities = np.repeat(
+        np.linspace(
+            0, edge_strength_matrix.shape[0] - 1, edge_strength_matrix.shape[0]
+        ),
+        edge_strength_matrix.shape[0],
+    ).reshape(
+        edge_strength_matrix.shape[0], edge_strength_matrix.shape[0]
+    ).T - np.linspace(
+        0, edge_strength_matrix.shape[0] - 1, edge_strength_matrix.shape[0]
+    ).reshape(
+        edge_strength_matrix.shape[0], 1
+    )
+    transition_probabilities = np.amax(
+        np.absolute(transition_probabilities), axis=0
+    ).reshape(1, edge_strength_matrix.shape[0]) - np.absolute(transition_probabilities)
+    transition_probabilities = transition_probabilities / np.sum(
+        transition_probabilities, axis=0
+    ).reshape(1, edge_strength_matrix.shape[0])
+
+    transition_probabilities += 0.0001
+
+    emission_probabilities = edge_strength_matrix / np.amax(
+        edge_strength_matrix, axis=0
+    )
+    emission_probabilities += 0.0001
+
+    if human:
+        emission_probabilities[:, column] = 0.00000001
+        emission_probabilities[row, column] = 1
+
+    intermediate_states = np.array([0 for _ in range(edge_strength_matrix.shape[0])])
+    all_possible_paths = [str(path) for path in range(edge_strength_matrix.shape[0])]
+
+    intermediate_states_backup = intermediate_states.copy()
+
+    for column in range(1, edge_strength_matrix.shape[1]):
+        for row in range(edge_strength_matrix.shape[0]):
+            intermediate_states[row] = np.amax(
+                np.log(transition_probabilities[:, row])
+                + intermediate_states_backup
+                + np.log(emission_probabilities[row, column])
+            )
+            all_possible_paths[row] += " " + np.argmax(
+                np.log(transition_probabilities[:, row])
+                + intermediate_states_backup
+                + np.log(emission_probabilities[row, column])
+            ).astype(str)
+        intermediate_states_backup = intermediate_states.copy()
+
+    resultant_matrix = np.array(
+        all_possible_paths[np.argmax(intermediate_states)].split(" ")
+    ).astype(int)
+
+    # Save for our records
+    imageio.imwrite(
+        "{0}/{1}_output_human.jpg".format(
+            "human_viterbi" if human else "viterbi",
+            filename.split(".")[0].split("/")[-1],
+        ),
+        draw_edge(
+            image=image, y_coordinates=resultant_matrix, color=(0, 255, 0), thickness=5
+        ),
+    )
+
+    # Save for grading system
+    imageio.imwrite(
+        "output_human.jpg",
+        draw_edge(
+            image=image, y_coordinates=resultant_matrix, color=(0, 255, 0), thickness=5
+        ),
     )
 
     return None
@@ -205,15 +290,21 @@ def human_viterbi(edge_strength_matrix: np.array, filename: str, image, coordina
 
 if __name__ == "__main__":
 
-    if not os.path.exists("viterbi") and not os.path.exists("bayes_net"):
+    if not os.path.exists("viterbi"):
         os.makedirs("viterbi")
+
+    if not os.path.exists("bayes_net"):
         os.makedirs("bayes_net")
+
+    if not os.path.exists("human_viterbi"):
+        os.makedirs("human_viterbi")
 
     (input_filename, gt_row, gt_col) = sys.argv[1:]
 
     # load in image
     input_image_bayes_net = Image.open(input_filename)
     input_image_viterbi = Image.open(input_filename)
+    input_image_viterbi_with_log = Image.open(input_filename)
 
     # compute edge strength mask
     edge_strength = get_edge_strength(input_image_bayes_net)
@@ -233,9 +324,11 @@ if __name__ == "__main__":
         image=input_image_viterbi,
     )
 
-    # TODO Human Viterbi
-    human_viterbi(
+    viterbi_with_logs(
         edge_strength_matrix=edge_strength,
         filename=input_filename,
-        image=input_image_viterbi,
+        image=input_image_viterbi_with_log,
+        row=int(gt_row),
+        column=int(gt_col),
+        human=True,
     )
