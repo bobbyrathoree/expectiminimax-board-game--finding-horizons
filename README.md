@@ -33,4 +33,10 @@ Better. But can it be improved even further?
 
 ### Viterbi with human feedback
 
-Now, in this case, everything else is same, except we're given a set of pixel coordinates that we can assume lie on the ridge of the mountain of a given picture.
+Now, in this case, everything else is same, except we're given a set of pixel coordinates that we can assume lie on the ridge of the mountain of a given picture. This should help reduce the state space for the algorithm to work on, since now we can assume that the ridge has to be near the given coordinates. We change the emission probabilities, as in change the column where the pixel lies to a value really close to zero and make that particular pixel equal to 1, since it is definitely part of the ridge. Before that, we normalize the emission probabilities using a similar technique that we used for the initial probabilities in the regular viterbi function. Sample outputs are as follows:
+
+![output 1](part2/human_viterbi/mountain5_output_human.jpg)
+
+![output_2](part2/human_viterbi/mountain8_output_human.jpg)
+
+![output_3](part2/human_viterbi/mountain_output_human.jpg)

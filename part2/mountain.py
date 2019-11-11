@@ -305,9 +305,10 @@ def viterbi_with_logs(
 
     # Save for our records
     imageio.imwrite(
-        "{0}/{1}_output_human.jpg".format(
+        "{0}/{1}_output_{2}.jpg".format(
             "human_viterbi" if human else "viterbi",
             filename.split(".")[0].split("/")[-1],
+            "human" if human else "map",
         ),
         draw_edge(
             image=image, y_coordinates=resultant_matrix, color=(0, 255, 0), thickness=5
