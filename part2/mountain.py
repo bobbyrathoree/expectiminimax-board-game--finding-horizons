@@ -83,7 +83,7 @@ def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
         draw_edge(
             image=image.copy(),
             y_coordinates=edge_strength_matrix.argmax(axis=0),
-            color=(255, 123, 0),
+            color=(0, 0, 255),
             thickness=5,
         ),
     )
@@ -94,7 +94,7 @@ def bayes_net(edge_strength_matrix: np.array, filename: str, image) -> None:
         draw_edge(
             image=image,
             y_coordinates=edge_strength_matrix.argmax(axis=0),
-            color=(255, 123, 0),
+            color=(0, 0, 255),
             thickness=5,
         ),
     )
@@ -349,18 +349,21 @@ if __name__ == "__main__":
         "edges.jpg", np.uint8(255 * edge_strength / (np.amax(edge_strength)))
     )
 
+    # Module 1: Bayes Net
     bayes_net(
         edge_strength_matrix=edge_strength,
         filename=input_filename,
         image=input_image_bayes_net,
     )
 
+    # Module 2: Viterbi
     viterbi(
         edge_strength_matrix=edge_strength,
         filename=input_filename,
         image=input_image_viterbi,
     )
 
+    # Module 3: Viterbi with human feedback
     viterbi_with_logs(
         edge_strength_matrix=edge_strength,
         filename=input_filename,
