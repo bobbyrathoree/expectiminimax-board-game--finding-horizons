@@ -13,7 +13,7 @@ The leaf nodes (successor boards at depth 0) are evaluated using the heuristic f
 
 Initially we when we started coding solution for this problem, we were passing ‘game’ to our function and performing L, R, U, D moves on it. Later, we realized what we were doing was modifying the same game object. And then we started using deepcopy of the game object instead. New lesson learned. Our implementation of expectiminimax takes slightly long time to find the best move for the player during the initial turns in the game when the board is relatively empty. 
 
-##Deterministic IJK
+## Deterministic IJK: 
 
 For Deterministic IJK a new letter ‘a’ or ‘A’ is added to the board in the first empty spot from the top left corner.  After taking some time to understand how the game works and formulating how to solve it we came to the first step which was implementing the Minimax algorithm and then added alpha beta pruning.  The depth for this was 4 (2 rounds max, min, max, min).
 
