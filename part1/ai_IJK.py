@@ -28,7 +28,8 @@ def freespaces(board):
     return child
 
 # Our heuristic function consists of 3 functions- freeTile, merges, highestvaltile and gradient
-# Referred discussion on stackoverflow: https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/22498940#22498940
+# Referred discussion on stackoverflow: 
+# https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/22498940#22498940
 
 # freeTile counts the number of empty tiles on the board. When the board is getting filled up, configurations with more empty tiles and merges will have preference over other configurations 
 def freeTile(board):
@@ -79,7 +80,6 @@ def highestvaltile(board, currentPlayer, otherPlayer):
 
 # converts the passed board into numerical board for testing the gradient property
 def numBoard(board):
-    #letterValue = {'a': pow(2, 1), 'b': pow(2, 2), 'c': pow(2, 3), 'd': pow(2,4), 'e': pow(2, 5), 'f': pow(2, 6), 'g': pow(2, 7), 'h':pow(2, 8), 'i': pow(2, 9), 'j': pow(2, 10), 'k': pow(2, 11)}
     letterValue = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8, 'i': 9, 'j': 10, 'k': 11}
     newBoard = board
     for i in range(len(board)):
